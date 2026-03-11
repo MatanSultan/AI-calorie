@@ -33,7 +33,7 @@ export async function getDashboardData() {
   const today = new Date();
   const sevenDaysAgo = subDays(today, 6);
 
-  const [{ data: entries }, { data: goals }] = await Promise.all([
+  const [{ data: entries }, { data: goals }, { count: totalMealsCount }] = await Promise.all([
     supabase
       .from("meal_entries")
       .select("id,total_confirmed_calories,total_estimated_calories,occurred_at")
@@ -43,6 +43,11 @@ export async function getDashboardData() {
       .lte("occurred_at", endOfDayIso(today))
       .order("occurred_at", { ascending: true }),
     supabase.from("user_goals").select("daily_calorie_target").eq("user_id", user.id).maybeSingle(),
+    supabase
+      .from("meal_entries")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("status", "confirmed"),
   ]);
 
   const weeklyMap = new Map<string, number>();
@@ -52,7 +57,7 @@ export async function getDashboardData() {
   }
 
   let todayCalories = 0;
-  const mealCount = entries?.length ?? 0;
+  const mealCount = totalMealsCount ?? entries?.length ?? 0;
 
   entries?.forEach((entry) => {
     const date = format(new Date(entry.occurred_at), "yyyy-MM-dd");

@@ -1,30 +1,10 @@
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { hasSupabaseServiceRole } from "@/lib/supabase/config";
+import { storeMealImage } from "@/lib/meals/store-image";
 import { createClient } from "@/lib/supabase/server";
-import { uploadSchema } from "@/lib/validation/meal";
 
 export const runtime = "nodejs";
-
-const MIME_EXTENSION_MAP: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/jpg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-  "image/heic": "heic",
-  "image/heif": "heif",
-};
-
-function getFileExtension(file: File) {
-  const originalExtension = file.name.includes(".") ? file.name.split(".").pop()?.toLowerCase() : undefined;
-  if (originalExtension && /^[a-z0-9]+$/i.test(originalExtension)) {
-    return originalExtension;
-  }
-
-  return MIME_EXTENSION_MAP[file.type.toLowerCase()] ?? "jpg";
-}
 
 function getUploadStatus(error: unknown) {
   const message = error instanceof Error ? error.message.toLowerCase() : "";
@@ -69,47 +49,27 @@ export async function POST(request: Request) {
       );
     }
 
-    uploadSchema.parse({
+    const storedImage = await storeMealImage(supabase, {
+      userId: user.id,
+      fileName: file.name,
       mimeType: file.type,
       sizeBytes: file.size,
+      buffer: Buffer.from(await file.arrayBuffer()),
     });
-
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const extension = getFileExtension(file);
-    const path = `${user.id}/${new Date().toISOString().slice(0, 10)}/${randomUUID()}.${extension}`;
-    const storageClient = hasSupabaseServiceRole() ? createAdminClient() : supabase;
-
-    const { error: uploadError } = await storageClient.storage.from("meal-images").upload(path, buffer, {
-      contentType: file.type,
-      cacheControl: "3600",
-      upsert: false,
-    });
-
-    if (uploadError) {
-      throw uploadError;
-    }
-
-    const { data: publicData } = storageClient.storage.from("meal-images").getPublicUrl(path);
 
     if (process.env.NODE_ENV !== "production") {
       console.info(`[uploads:${requestId}] uploaded`, {
         userId: user.id,
-        path,
+        path: storedImage.path,
         sizeBytes: file.size,
         mimeType: file.type,
-        usedServiceRole: hasSupabaseServiceRole(),
       });
     }
 
     return NextResponse.json(
       {
         success: true,
-        image: {
-          path,
-          publicUrl: publicData.publicUrl,
-          mimeType: file.type,
-          sizeBytes: file.size,
-        },
+        image: storedImage,
       },
       {
         status: 201,

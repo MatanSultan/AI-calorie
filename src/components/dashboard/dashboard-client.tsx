@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -24,7 +24,7 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { fileFromDataUrl, prepareImageForAnalysis } from "@/lib/client/image";
+import { prepareImageForAnalysis } from "@/lib/client/image";
 import { MAX_LOCAL_MEAL_SOURCE_BYTES } from "@/lib/meal-config";
 import type { AppLocale, ChatMessage, MealAnalysis, MealItemInput } from "@/lib/types";
 import { formatCalories, toNumber } from "@/lib/utils";
@@ -56,17 +56,14 @@ type StoredMealImage = {
   sizeBytes: number;
 };
 
-type UploadResponse = {
-  success: true;
-  image: StoredMealImage;
-};
-
 type FinalizeResponse = {
   success: true;
   mealId: string;
   meal: RecentMeal & {
     status: "draft" | "pending_confirmation" | "confirmed";
   };
+  image?: StoredMealImage | null;
+  warnings?: string[];
 };
 
 function StepChip({ label, step }: { label: string; step: string }) {
@@ -105,7 +102,7 @@ const copyByLocale = {
     cameraError: "לא הצלחנו לפתוח מצלמה במכשיר הזה.",
     imageAlt: "תצוגה מקדימה של הארוחה",
     step2: "שלב 2",
-    step2Title: "AI מנתח את מה שצילמת",
+    step2Title: "ה-AI מנתח את מה שצילמת",
     step2Description: "כאן רואים מה זוהה בתמונה, מה גודל המנה ומה ההערכה הקלורית.",
     noAnalysisYet: "אחרי שתעלו תמונה ותלחצו על ניתוח, תראו כאן את פירוט הארוחה.",
     detectedMeal: "זיהינו את מה שצילמת",
@@ -113,7 +110,7 @@ const copyByLocale = {
     totalEstimate: "סה\"כ קלוריות משוערות",
     refineHint: "אפשר לדייק לפני שמירה על ידי עריכת כמויות, פריטים או קלוריות.",
     lowConfidence: "הזיהוי לא ודאי לגמרי. מומלץ לעדכן פרטים לפני שמירה.",
-    followUpTitle: "שאלות קצרות לדייק את ההערכה",
+    followUpTitle: "שאלות קצרות כדי לדייק את ההערכה",
     notesTitle: "הערות מהניתוח",
     addItem: "הוסף פריט",
     macros: "מאקרו משוער",
@@ -127,7 +124,7 @@ const copyByLocale = {
     saveError: "לא הצלחנו לשמור את הארוחה. נסו שוב.",
     emptyAnalysis: "לא זוהו פריטי מזון. נסו תמונה ברורה יותר.",
     refinementTitle: "דייקו רק אם צריך",
-    refinementDescription: "הצ'אט משמש רק לחידוד כמויות, רוטב, שתייה או שיטת הכנה.",
+    refinementDescription: "הצ'אט משמש רק לחידוד כמויות, רוטב, שתייה או שיטת ההכנה.",
     chatPlaceholder: "למשל: זה היה עם שמן זית",
     send: "שלח",
     chatExamples: ["זה היה עם שמן", "תוסיף גם שתייה", "זו הייתה חצי מנה", "זה היה עוף מטוגן"],
@@ -216,10 +213,7 @@ export function DashboardClient({ locale, summary, recentMeals }: Props) {
   const [recentMealsState, setRecentMealsState] = useState(recentMeals);
   const [description, setDescription] = useState("");
   const [cameraOn, setCameraOn] = useState(false);
-  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
-  const [preparedUploadFile, setPreparedUploadFile] = useState<File | null>(null);
   const [imageBase64, setImageBase64] = useState<string | undefined>();
-  const [uploadedImage, setUploadedImage] = useState<StoredMealImage | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<MealAnalysis | null>(null);
   const [items, setItems] = useState<MealItemInput[]>([]);
@@ -276,21 +270,9 @@ export function DashboardClient({ locale, summary, recentMeals }: Props) {
     }
 
     return locale === "he"
-      ? "אפשר לשמור את הזרימה פשוטה: תמונה, בדיקה קצרה, אישור."
+      ? "אפשר לשמור על הזרימה פשוטה: תמונה, בדיקה קצרה, אישור."
       : "Keep the flow simple: image, quick review, approve.";
   }, [locale, recentMealsState.length, summary.goal, todayCalories]);
-
-  async function uploadFile(file: File) {
-    const formData = new FormData();
-    formData.append("file", file);
-    const response = await fetch("/api/uploads", { method: "POST", body: formData });
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      throw new Error(payload?.error ?? "Upload failed");
-    }
-    const payload = (await response.json()) as UploadResponse;
-    return payload.image;
-  }
 
   function resetDraftState() {
     setAnalysis(null);
@@ -308,13 +290,10 @@ export function DashboardClient({ locale, summary, recentMeals }: Props) {
       return;
     }
     if (file.size > MAX_LOCAL_MEAL_SOURCE_BYTES) {
-      toast.error(locale === "he" ? "התמונה גדולה מדי לצילום מהיר. נסה קובץ עד 20MB." : "Image is too large. Please use a file up to 20MB.");
+      toast.error(locale === "he" ? "התמונה גדולה מדי לצילום מהיר. נסו קובץ עד 20MB." : "Image is too large. Please use a file up to 20MB.");
       return;
     }
 
-    setSelectedImageFile(file);
-    setPreparedUploadFile(null);
-    setUploadedImage(null);
     setImagePreview((prev) => {
       if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
       return URL.createObjectURL(file);
@@ -323,7 +302,6 @@ export function DashboardClient({ locale, summary, recentMeals }: Props) {
     try {
       const dataUrl = await prepareImageForAnalysis(file);
       setImageBase64(dataUrl);
-      setPreparedUploadFile(fileFromDataUrl(dataUrl, `meal-${Date.now()}.jpg`));
       resetDraftState();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : copy.invalidType);
@@ -370,7 +348,7 @@ export function DashboardClient({ locale, summary, recentMeals }: Props) {
 
   async function runAnalysis(explicitImageBase64?: string, refinedDescription?: string) {
     const imagePayload = explicitImageBase64 ?? imageBase64;
-    if (!imagePayload && !uploadedImage?.publicUrl) {
+    if (!imagePayload) {
       toast.error(locale === "he" ? "צריך להעלות תמונת ארוחה לפני ניתוח." : "Please upload a meal image before analysis.");
       return;
     }
@@ -389,7 +367,6 @@ export function DashboardClient({ locale, summary, recentMeals }: Props) {
         body: JSON.stringify({
           locale,
           imageBase64: explicitImageBase64 ?? imageBase64,
-          imageUrl: uploadedImage?.publicUrl,
           mealDescription: refinedDescription ?? description,
         }),
       });
@@ -457,7 +434,7 @@ export function DashboardClient({ locale, summary, recentMeals }: Props) {
   }
 
   function updateWeeklyCaloriesAfterSave(totalCalories: number, occurredAtIso: string) {
-    const entryDate = new Date(occurredAtIso).toLocaleDateString("en-CA");
+    const entryDate = new Date(occurredAtIso).toISOString().slice(0, 10);
     setWeeklyCaloriesState((prev) => {
       if (prev.length === 0) return prev;
       let found = false;
@@ -480,7 +457,6 @@ export function DashboardClient({ locale, summary, recentMeals }: Props) {
         body: JSON.stringify({
           locale,
           imageBase64,
-          imageUrl: uploadedImage?.publicUrl,
           mealDescription: buildRefinementText(chatMessages),
         }),
       });
@@ -560,40 +536,17 @@ export function DashboardClient({ locale, summary, recentMeals }: Props) {
     setSaveWarning(null);
 
     try {
-      let imageForSave = uploadedImage;
-      let uploadWarningMessage: string | null = null;
-      if (!imageForSave && (preparedUploadFile || selectedImageFile)) {
-        try {
-          imageForSave = await uploadFile(preparedUploadFile ?? selectedImageFile!);
-          setUploadedImage(imageForSave);
-        } catch (error) {
-          const message =
-            error instanceof Error
-              ? error.message
-              : locale === "he"
-                ? "לא הצלחנו לצרף את התמונה, אבל נמשיך לשמור את הארוחה."
-              : "Could not attach the image, but the meal will still be saved.";
-
-          const fallbackNotice =
-            locale === "he"
-              ? "שמירת התמונה נכשלה, לכן הארוחה תישמר בלי התמונה המצורפת."
-              : "Image upload failed, so the meal will be saved without the attached image.";
-
-          uploadWarningMessage = message || fallbackNotice;
-          setSaveWarning(uploadWarningMessage);
-          imageForSave = null;
-        }
-      }
-
       const response = await fetch("/api/meals/finalize", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          locale,
           title: description?.slice(0, 80) || (locale === "he" ? "ארוחה חדשה" : "New meal"),
           status: "confirmed",
           occurredAt: new Date().toISOString(),
           notes: analysis?.notes.join("\n") || undefined,
-          image: imageForSave || undefined,
+          imageBase64: imageBase64 || undefined,
           analysis: analysis ?? {
             items,
             total_estimated_calories: currentMealCalories,
@@ -618,19 +571,26 @@ export function DashboardClient({ locale, summary, recentMeals }: Props) {
         throw new Error(payload?.error ?? copy.saveError);
       }
 
-      setTodayCalories((prev) => prev + currentMealCalories);
+      const confirmedCalories = payload.meal?.total_confirmed_calories ?? currentMealCalories;
+      const warningText = payload.warnings?.filter(Boolean).join(" ");
+
+      setTodayCalories((prev) => prev + confirmedCalories);
       setSavedMealsCount((prev) => prev + 1);
-      updateWeeklyCaloriesAfterSave(currentMealCalories, payload.meal?.occurred_at ?? new Date().toISOString());
+      updateWeeklyCaloriesAfterSave(confirmedCalories, payload.meal?.occurred_at ?? new Date().toISOString());
 
       if (payload.meal) {
         const savedMeal = payload.meal;
         setRecentMealsState((prev) => [savedMeal, ...prev.filter((meal) => meal.id !== savedMeal.id)].slice(0, 5));
       }
 
-      const successMessage = uploadWarningMessage
+      if (warningText) {
+        setSaveWarning(warningText);
+      }
+
+      const successMessage = warningText
         ? locale === "he"
-          ? `${copy.savedTitle}. הארוחה נשמרה, אבל בלי תמונה.`
-          : `${copy.savedTitle}. The meal was saved without the image.`
+          ? `${copy.savedTitle}. הארוחה נשמרה, אבל התמונה לא צורפה הפעם.`
+          : `${copy.savedTitle}. The meal was saved, but the image could not be attached this time.`
         : `${copy.savedTitle}. ${copy.savedBody}`;
 
       setSavedNotice(successMessage);
@@ -638,9 +598,6 @@ export function DashboardClient({ locale, summary, recentMeals }: Props) {
 
       setDescription("");
       setImageBase64(undefined);
-      setSelectedImageFile(null);
-      setPreparedUploadFile(null);
-      setUploadedImage(null);
       setImagePreview((prev) => {
         if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
         return null;
@@ -782,7 +739,7 @@ export function DashboardClient({ locale, summary, recentMeals }: Props) {
                 {analysis.follow_up_questions.length > 0 ? (
                   <ul className="mt-3 space-y-1 text-xs font-medium">
                     {analysis.follow_up_questions.slice(0, 2).map((question) => (
-                      <li key={question}>• {question}</li>
+                      <li key={question}>- {question}</li>
                     ))}
                   </ul>
                 ) : null}
@@ -883,7 +840,7 @@ export function DashboardClient({ locale, summary, recentMeals }: Props) {
                     <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{copy.notesTitle}</p>
                     <ul className="space-y-1 text-sm text-slate-700 dark:text-slate-300">
                       {analysis.notes.slice(0, 4).map((note) => (
-                        <li key={note}>• {note}</li>
+                        <li key={note}>- {note}</li>
                       ))}
                     </ul>
                   </div>
@@ -1056,7 +1013,7 @@ export function DashboardClient({ locale, summary, recentMeals }: Props) {
                 >
                   <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{meal.title}</p>
                   <p className="mt-1 text-xs font-medium text-slate-700 dark:text-slate-300">
-                    {new Date(meal.occurred_at).toLocaleDateString(locale === "he" ? "he-IL" : "en-US")} ·{" "}
+                    {new Date(meal.occurred_at).toLocaleDateString(locale === "he" ? "he-IL" : "en-US")} |{" "}
                     {formatCalories(meal.total_confirmed_calories ?? meal.total_estimated_calories ?? 0)}
                   </p>
                 </Link>

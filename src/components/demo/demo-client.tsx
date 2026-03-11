@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { ImageUp, Loader2, MessageSquare, Sparkles } from "lucide-react";
@@ -33,11 +33,15 @@ export function DemoClient({ locale }: { locale: AppLocale }) {
   async function onFileSelected(file: File | null) {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast.error(locale === "he" ? "קובץ לא נתמך" : "Unsupported file type");
+      toast.error(locale === "he" ? "אפשר להעלות רק קובצי תמונה" : "Unsupported file type");
       return;
     }
     if (file.size > MAX_MEAL_IMAGE_UPLOAD_BYTES) {
-      toast.error(locale === "he" ? "התמונה גדולה מדי. נסו קובץ עד 8MB." : "Image is too large. Please use a file up to 8MB.");
+      toast.error(
+        locale === "he"
+          ? "התמונה גדולה מדי. נסו קובץ עד 8MB."
+          : "Image is too large. Please use a file up to 8MB.",
+      );
       return;
     }
     setImagePreview((prev) => {
@@ -82,7 +86,7 @@ export function DemoClient({ locale }: { locale: AppLocale }) {
       if (!containsFood) {
         toast.error(
           payload.non_food_reason ??
-            (locale === "he" ? "התמונה לא מזוהה כמזון" : "This image was not detected as food"),
+            (locale === "he" ? "לא זוהה אוכל בתמונה הזאת" : "This image was not detected as food"),
         );
       } else {
         toast.success(locale === "he" ? "הניתוח מוכן" : "Analysis is ready");
@@ -196,7 +200,7 @@ export function DemoClient({ locale }: { locale: AppLocale }) {
             </div>
           ))}
           <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-            {locale === "he" ? "סה״כ משוער:" : "Estimated total:"} {formatCalories(total)}
+            {locale === "he" ? "סה\"כ משוער:" : "Estimated total:"} {formatCalories(total)}
           </p>
           {analysis.follow_up_questions.length > 0 ? (
             <div className="space-y-1">
@@ -205,7 +209,7 @@ export function DemoClient({ locale }: { locale: AppLocale }) {
               </p>
               <ul className="space-y-1 text-xs text-slate-700 dark:text-slate-300">
                 {analysis.follow_up_questions.slice(0, 3).map((question) => (
-                  <li key={question}>• {question}</li>
+                  <li key={question}>- {question}</li>
                 ))}
               </ul>
             </div>

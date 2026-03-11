@@ -99,10 +99,12 @@ export const coachChatRequestSchema = z.object({
 });
 
 export const finalizeMealSchema = z.object({
+  locale: z.enum(["he", "en"]).default("he"),
   title: z.string().min(1).max(120),
   status: z.enum(["draft", "pending_confirmation", "confirmed"]).default("confirmed"),
   occurredAt: z.string().datetime().optional(),
   notes: z.string().max(2000).optional(),
+  imageBase64: imageBase64Schema.optional(),
   image: z
     .object({
       path: z.string().min(1),

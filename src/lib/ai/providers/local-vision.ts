@@ -33,6 +33,11 @@ type LabelScore = {
   score: number;
 };
 
+type ImageView = {
+  id: string;
+  blob: Blob;
+};
+
 type LocalClassifier = (
   image: Blob,
   labels: string[],
@@ -271,6 +276,62 @@ const FOOD_PROFILES: FoodProfile[] = [
     followUps: {
       he: ["זו הייתה מנה קטנה או גדולה?", "היה גם רוטב בצד?"],
       en: ["Was it a small or large serving?", "Was there dipping sauce?"],
+    },
+  },
+  {
+    id: "sausages",
+    category: "main",
+    labels: ["sausages", "sausage links", "grilled sausages", "fried sausages", "hot dogs on a plate"],
+    name: { he: "נקניקיות", en: "Sausages" },
+    portion: { he: "2 נקניקיות קטנות", en: "2 small sausages" },
+    calories: 260,
+    protein_g: 11,
+    carbs_g: 4,
+    fat_g: 21,
+    followUps: {
+      he: ["הנקניקיות היו מטוגנות או צלויות?", "היו 2 נקניקיות או יותר?"],
+      en: ["Were the sausages fried or grilled?", "Were there two sausages or more?"],
+    },
+  },
+  {
+    id: "schnitzel",
+    category: "main",
+    labels: ["schnitzel", "breaded schnitzel", "fried cutlet", "chicken schnitzel"],
+    name: { he: "שניצל", en: "Schnitzel" },
+    portion: { he: "חתיכה בינונית", en: "1 medium piece" },
+    calories: 330,
+    protein_g: 24,
+    carbs_g: 16,
+    fat_g: 18,
+    followUps: {
+      he: ["זה היה שניצל עוף או הודו?", "היו רטבים או תוספת ליד?"],
+      en: ["Was it chicken or turkey schnitzel?", "Were there sauces or a side with it?"],
+    },
+  },
+  {
+    id: "ketchup",
+    category: "side",
+    labels: ["ketchup", "dipping sauce", "red sauce", "tomato dipping sauce"],
+    name: { he: "קטשופ", en: "Ketchup" },
+    portion: { he: "2 כפות", en: "2 tbsp" },
+    calories: 35,
+    carbs_g: 8,
+    followUps: {
+      he: ["היה רק מעט קטשופ או יותר?", "היה גם מיונז או רוטב נוסף?"],
+      en: ["Was it just a little ketchup or more?", "Was there mayo or another sauce too?"],
+    },
+  },
+  {
+    id: "mayonnaise",
+    category: "side",
+    labels: ["mayonnaise", "mayo dip", "white dipping sauce", "garlic mayo"],
+    name: { he: "מיונז", en: "Mayonnaise" },
+    portion: { he: "2 כפות", en: "2 tbsp" },
+    calories: 180,
+    fat_g: 20,
+    followUps: {
+      he: ["זה היה מיונז רגיל או רוטב שום?", "הייתה עוד כמות של רוטב ליד?"],
+      en: ["Was it regular mayo or garlic sauce?", "Was there more sauce on the side?"],
     },
   },
   {
@@ -523,7 +584,7 @@ function extractImageBlobFromBase64(dataUrl: string) {
   const mimeType = matches[1];
   const base64 = matches[2];
   const buffer = Buffer.from(base64, "base64");
-  return new Blob([buffer], { type: mimeType });
+  return new Blob([new Uint8Array(buffer)], { type: mimeType });
 }
 
 async function extractImageBlobFromUrl(url: string) {
@@ -533,7 +594,131 @@ async function extractImageBlobFromUrl(url: string) {
   }
   const contentType = response.headers.get("content-type") || "image/jpeg";
   const buffer = Buffer.from(await response.arrayBuffer());
-  return new Blob([buffer], { type: contentType });
+  return new Blob([new Uint8Array(buffer)], { type: contentType });
+}
+
+function buildCropSpecs(width: number, height: number) {
+  const centerSize = Math.max(220, Math.round(Math.min(width, height) * 0.72));
+  const quadrantWidth = Math.max(220, Math.round(width * 0.62));
+  const quadrantHeight = Math.max(220, Math.round(height * 0.62));
+  const bandWidth = Math.max(220, Math.round(width * 0.84));
+  const bandHeight = Math.max(220, Math.round(height * 0.52));
+
+  const specs = [
+    {
+      id: "center",
+      left: Math.max(0, Math.round((width - centerSize) / 2)),
+      top: Math.max(0, Math.round((height - centerSize) / 2)),
+      width: Math.min(width, centerSize),
+      height: Math.min(height, centerSize),
+    },
+    { id: "top-left", left: 0, top: 0, width: Math.min(width, quadrantWidth), height: Math.min(height, quadrantHeight) },
+    {
+      id: "top-right",
+      left: Math.max(0, width - Math.min(width, quadrantWidth)),
+      top: 0,
+      width: Math.min(width, quadrantWidth),
+      height: Math.min(height, quadrantHeight),
+    },
+    {
+      id: "bottom-left",
+      left: 0,
+      top: Math.max(0, height - Math.min(height, quadrantHeight)),
+      width: Math.min(width, quadrantWidth),
+      height: Math.min(height, quadrantHeight),
+    },
+    {
+      id: "bottom-right",
+      left: Math.max(0, width - Math.min(width, quadrantWidth)),
+      top: Math.max(0, height - Math.min(height, quadrantHeight)),
+      width: Math.min(width, quadrantWidth),
+      height: Math.min(height, quadrantHeight),
+    },
+    {
+      id: "middle-band",
+      left: Math.max(0, Math.round((width - bandWidth) / 2)),
+      top: Math.max(0, Math.round((height - bandHeight) / 2)),
+      width: Math.min(width, bandWidth),
+      height: Math.min(height, bandHeight),
+    },
+  ];
+
+  return specs.filter((spec, index, allSpecs) => {
+    const area = spec.width * spec.height;
+    if (area < 48_000) return false;
+    return (
+      allSpecs.findIndex(
+        (candidate) =>
+          candidate.left === spec.left &&
+          candidate.top === spec.top &&
+          candidate.width === spec.width &&
+          candidate.height === spec.height,
+      ) === index
+    );
+  });
+}
+
+async function buildSupplementaryImageViews(blob: Blob): Promise<ImageView[]> {
+  const views: ImageView[] = [{ id: "full", blob }];
+
+  try {
+    const sharpModule = await import("sharp");
+    const sharp = sharpModule.default;
+    const inputBuffer = Buffer.from(await blob.arrayBuffer());
+    const metadata = await sharp(inputBuffer, { failOn: "none" }).metadata();
+
+    if (!metadata.width || !metadata.height || metadata.width < 320 || metadata.height < 320) {
+      return views;
+    }
+
+    for (const crop of buildCropSpecs(metadata.width, metadata.height)) {
+      const croppedBuffer = await sharp(inputBuffer, { failOn: "none" })
+        .extract({
+          left: crop.left,
+          top: crop.top,
+          width: crop.width,
+          height: crop.height,
+        })
+        .jpeg({ quality: 82, mozjpeg: true })
+        .toBuffer();
+
+      views.push({
+        id: crop.id,
+        blob: new Blob([new Uint8Array(croppedBuffer)], { type: "image/jpeg" }),
+      });
+    }
+  } catch {
+    return views;
+  }
+
+  return views;
+}
+
+function mergeLabelScores(resultSets: LabelScore[][]) {
+  const merged = new Map<string, { max: number; total: number; hits: number }>();
+
+  for (const resultSet of resultSets) {
+    for (const result of resultSet) {
+      const entry = merged.get(result.label) ?? { max: 0, total: 0, hits: 0 };
+      entry.max = Math.max(entry.max, result.score);
+      entry.total += result.score;
+      if (result.score >= 0.12) {
+        entry.hits += 1;
+      }
+      merged.set(result.label, entry);
+    }
+  }
+
+  return [...merged.entries()]
+    .map(([label, entry]) => {
+      const average = entry.total / resultSets.length;
+      const supportBonus = Math.min(0.12, Math.max(0, entry.hits - 1) * 0.04);
+      return {
+        label,
+        score: clamp(Math.max(entry.max, average * 1.15) + supportBonus, 0, 0.99),
+      };
+    })
+    .sort((left, right) => right.score - left.score);
 }
 
 function findTopNonFoodScore(results: LabelScore[]) {
@@ -547,10 +732,15 @@ function findTopNonFoodScore(results: LabelScore[]) {
 function getProfileScores(results: LabelScore[]) {
   return FOOD_PROFILES.map((profile) => ({
     profile,
-    score: profile.labels.reduce((max, label) => {
-      const match = results.find((entry) => entry.label === label);
-      return Math.max(max, match?.score ?? 0);
-    }, 0),
+    score: (() => {
+      const labelScores = profile.labels
+        .map((label) => results.find((entry) => entry.label === label)?.score ?? 0)
+        .sort((left, right) => right - left);
+      const strongest = labelScores[0] ?? 0;
+      const secondStrongest = labelScores[1] ?? 0;
+      const supportingLabels = labelScores.filter((score) => score >= 0.12).length;
+      return clamp(strongest * 0.76 + secondStrongest * 0.18 + Math.min(0.08, supportingLabels * 0.02), 0, 0.99);
+    })(),
   })).sort((left, right) => right.score - left.score);
 }
 
@@ -560,23 +750,42 @@ function selectProfiles(rankedProfiles: Array<{ profile: FoodProfile; score: num
   const primary = bestSpecific && bestSpecific.score >= 0.17 ? bestSpecific : bestAny;
 
   const selected = primary ? [primary] : [];
+  const categoryCounts: Record<FoodCategory, number> = {
+    main: primary?.profile.category === "main" ? 1 : 0,
+    side: primary?.profile.category === "side" ? 1 : 0,
+    drink: primary?.profile.category === "drink" ? 1 : 0,
+    dessert: primary?.profile.category === "dessert" ? 1 : 0,
+    generic: primary?.profile.category === "generic" ? 1 : 0,
+  };
+
   for (const candidate of rankedProfiles) {
-    if (!primary || selected.length >= 3) break;
+    if (!primary || selected.length >= 4) break;
     if (candidate.profile.id === primary.profile.id) continue;
     if (candidate.profile.id === MIXED_MEAL_PROFILE_ID) continue;
     if (selected.some((entry) => entry.profile.id === candidate.profile.id)) continue;
 
-    const threshold = candidate.profile.category === "drink" ? 0.2 : candidate.profile.category === "side" ? 0.16 : 0.22;
+    const threshold =
+      candidate.profile.category === "drink"
+        ? 0.16
+        : candidate.profile.category === "side"
+          ? 0.12
+          : candidate.profile.category === "dessert"
+            ? 0.14
+            : 0.16;
+
     if (candidate.score < threshold) continue;
-    if (candidate.profile.category !== "drink" && primary.score - candidate.score > 0.2) continue;
-    if (
-      candidate.profile.category !== "drink" &&
-      selected.some((entry) => entry.profile.category === candidate.profile.category && entry.profile.category !== "side")
-    ) {
-      continue;
+    if (candidate.profile.category !== "side" && candidate.profile.category !== "drink" && primary.score - candidate.score > 0.26) continue;
+    if (candidate.profile.category === "main" && categoryCounts.main >= 1) {
+      if (candidate.score < 0.24) continue;
+      if (primary.score - candidate.score > 0.12) continue;
     }
+    if (candidate.profile.category === "main" && categoryCounts.main >= 2) continue;
+    if (candidate.profile.category === "side" && categoryCounts.side >= 2) continue;
+    if (candidate.profile.category === "drink" && categoryCounts.drink >= 1) continue;
+    if (candidate.profile.category === "dessert" && categoryCounts.dessert >= 1) continue;
 
     selected.push(candidate);
+    categoryCounts[candidate.profile.category] += 1;
   }
 
   return selected.sort((left, right) => {
@@ -825,16 +1034,38 @@ export class LocalVisionAIProvider extends BaseAIProvider {
     }
 
     const normalizedText = normalizeText(input.mealDescription);
-    const results = await classifyImage(imageBlob);
-    const topNonFoodScore = findTopNonFoodScore(results);
-    const rankedProfiles = getProfileScores(results);
-    const selectedProfiles = selectProfiles(rankedProfiles);
-    const bestFoodScore = selectedProfiles[0]?.score ?? 0;
+    const fullImageResults = await classifyImage(imageBlob);
+    let mergedResults = fullImageResults;
+    let topNonFoodScore = findTopNonFoodScore(mergedResults);
+    let rankedProfiles = getProfileScores(mergedResults);
+    let selectedProfiles = selectProfiles(rankedProfiles);
+    let bestFoodScore = selectedProfiles[0]?.score ?? 0;
+
+    const shouldInspectMoreViews =
+      selectedProfiles.length < 2 ||
+      bestFoodScore < 0.4 ||
+      selectedProfiles.some(({ profile }) => profile.id === MIXED_MEAL_PROFILE_ID);
+
+    if (shouldInspectMoreViews) {
+      const supplementaryViews = await buildSupplementaryImageViews(imageBlob);
+      if (supplementaryViews.length > 1) {
+        const resultSets: LabelScore[][] = [fullImageResults];
+        for (const view of supplementaryViews.slice(1)) {
+          resultSets.push(await classifyImage(view.blob));
+        }
+
+        mergedResults = mergeLabelScores(resultSets);
+        topNonFoodScore = findTopNonFoodScore(mergedResults);
+        rankedProfiles = getProfileScores(mergedResults);
+        selectedProfiles = selectProfiles(rankedProfiles);
+        bestFoodScore = selectedProfiles[0]?.score ?? 0;
+      }
+    }
 
     const containsFood =
-      bestFoodScore >= 0.16 &&
+      bestFoodScore >= 0.14 &&
       !(topNonFoodScore >= 0.42 && topNonFoodScore > bestFoodScore) &&
-      !(bestFoodScore < 0.22 && topNonFoodScore + 0.02 >= bestFoodScore);
+      !(bestFoodScore < 0.2 && topNonFoodScore + 0.03 >= bestFoodScore);
 
     if (!containsFood || selectedProfiles.length === 0) {
       return buildNonFoodResponse(input.locale, topNonFoodScore);

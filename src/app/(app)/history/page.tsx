@@ -1,10 +1,11 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { CalendarRange, ChevronLeft, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getMealHistory } from "@/lib/supabase/queries";
+import { getLocale } from "@/lib/i18n/get-locale";
 
 export default async function HistoryPage({
   searchParams,
@@ -12,6 +13,8 @@ export default async function HistoryPage({
   searchParams: Promise<{ q?: string; from?: string; to?: string }>;
 }) {
   const params = await searchParams;
+  const locale = await getLocale();
+  const isHebrew = locale === "he";
   const meals = await getMealHistory(params.q, params.from, params.to);
 
   return (
@@ -20,28 +23,36 @@ export default async function HistoryPage({
         <div className="grid gap-4 px-5 py-6 sm:px-6 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-3">
             <Badge className="bg-white/15 text-white hover:bg-white/15" variant="default">
-              היסטוריית ארוחות
+              {isHebrew ? "היסטוריית ארוחות" : "Meal history"}
             </Badge>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">כל הארוחות השמורות במקום אחד</h1>
+              <h1 className="text-3xl font-bold tracking-tight">
+                {isHebrew ? "כל הארוחות השמורות במקום אחד" : "All your saved meals in one place"}
+              </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-cyan-50">
-                חיפוש מהיר לפי שם, סינון לפי תאריך, וכניסה לכל ארוחה כדי לראות פירוט פריטים, תמונה וסיכום.
+                {isHebrew
+                  ? "חיפוש מהיר לפי שם, סינון לפי תאריך, וכניסה לכל ארוחה כדי לראות פירוט פריטים, תמונה וסיכום."
+                  : "Quick search by meal name, date filters, and a full breakdown page for each saved meal."}
               </p>
             </div>
           </div>
 
           <div className="rounded-[28px] border border-white/15 bg-slate-950/15 p-4 backdrop-blur">
-            <p className="text-sm font-semibold text-white/90">סה"כ ארוחות שמורות</p>
+            <p className="text-sm font-semibold text-white/90">{isHebrew ? "סך ארוחות שמורות" : "Total saved meals"}</p>
             <p className="mt-2 text-4xl font-bold">{meals.length}</p>
-            <p className="mt-2 text-sm text-cyan-50">רק ארוחות שאושרו נשמרות ומופיעות כאן.</p>
+            <p className="mt-2 text-sm text-cyan-50">
+              {isHebrew ? "רק ארוחות שאושרו נשמרות ומופיעות כאן." : "Only approved meals are stored and shown here."}
+            </p>
           </div>
         </div>
       </Card>
 
       <Card className="space-y-4">
         <div className="space-y-1">
-          <CardTitle>חיפוש וסינון</CardTitle>
-          <CardDescription>אפשר למצוא ארוחה לפי כותרת או לבחור טווח תאריכים.</CardDescription>
+          <CardTitle>{isHebrew ? "חיפוש וסינון" : "Search and filters"}</CardTitle>
+          <CardDescription>
+            {isHebrew ? "אפשר למצוא ארוחה לפי כותרת או לבחור טווח תאריכים." : "Find meals by title or filter by date range."}
+          </CardDescription>
         </div>
 
         <form className="grid gap-3 md:grid-cols-[1fr_180px_180px_auto]">
@@ -51,12 +62,12 @@ export default async function HistoryPage({
               name="q"
               defaultValue={params.q}
               className="pe-10"
-              placeholder="חיפוש לפי כותרת הארוחה"
+              placeholder={isHebrew ? "חיפוש לפי כותרת הארוחה" : "Search by meal title"}
             />
           </div>
           <Input name="from" type="date" defaultValue={params.from} />
           <Input name="to" type="date" defaultValue={params.to} />
-          <Button className="w-full md:w-auto">סנן תוצאות</Button>
+          <Button className="w-full md:w-auto">{isHebrew ? "סנן תוצאות" : "Apply filters"}</Button>
         </form>
       </Card>
 
@@ -68,13 +79,15 @@ export default async function HistoryPage({
                 <CalendarRange className="h-5 w-5" />
               </div>
               <div className="space-y-1">
-                <CardTitle>עדיין אין ארוחות בתצוגה הזאת</CardTitle>
+                <CardTitle>{isHebrew ? "עדיין אין ארוחות בתצוגה הזאת" : "No meals match this view yet"}</CardTitle>
                 <CardDescription>
-                  ברגע שתשמור ארוחה מאושרת היא תופיע כאן אוטומטית יחד עם התאריך והקלוריות.
+                  {isHebrew
+                    ? "ברגע שתשמור ארוחה מאושרת היא תופיע כאן אוטומטית יחד עם התאריך והקלוריות."
+                    : "Once you save an approved meal, it will appear here automatically with its date and calories."}
                 </CardDescription>
               </div>
               <Link href="/dashboard#capture">
-                <Button>הוסף ארוחה חדשה</Button>
+                <Button>{isHebrew ? "הוסף ארוחה חדשה" : "Add a new meal"}</Button>
               </Link>
             </div>
           </Card>
@@ -86,16 +99,16 @@ export default async function HistoryPage({
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <CardTitle className="text-lg">{meal.title}</CardTitle>
-                      <Badge variant="high">נשמר</Badge>
+                      <Badge variant="high">{isHebrew ? "נשמר" : "Saved"}</Badge>
                     </div>
                     <CardDescription>
-                      {new Date(meal.occurred_at).toLocaleString("he-IL")}
+                      {new Date(meal.occurred_at).toLocaleString(isHebrew ? "he-IL" : "en-US")}
                     </CardDescription>
                   </div>
 
                   <div className="flex items-center gap-3">
                     <div className="rounded-2xl bg-slate-100 px-4 py-3 text-end dark:bg-slate-900">
-                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">קלוריות</p>
+                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{isHebrew ? "קלוריות" : "Calories"}</p>
                       <p className="text-lg font-bold text-slate-950 dark:text-slate-50">
                         {(meal.total_confirmed_calories ?? meal.total_estimated_calories ?? 0).toFixed(0)} kcal
                       </p>

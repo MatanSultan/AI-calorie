@@ -1,4 +1,4 @@
-import type { AppLocale } from "@/lib/types";
+﻿import type { AppLocale } from "@/lib/types";
 
 type Copy = {
   appName: string;
@@ -30,17 +30,17 @@ export const dictionary: Record<AppLocale, Copy> = {
     email: "אימייל",
     password: "סיסמה",
     fullName: "שם מלא",
-    dashboard: "דאשבורד",
-    chat: "AI צ'אט",
+    dashboard: "דשבורד",
+    chat: "צ'אט AI",
     history: "היסטוריה",
     profile: "פרופיל",
     save: "שמירה",
     logout: "התנתקות",
-    mealAssistant: "עוזר הארוחה",
+    mealAssistant: "עוזר הארוחות",
     upload: "העלאת תמונה",
     camera: "מצלמה",
     manual: "הזנה ידנית",
-    estimatesDisclaimer: "הערכים הם הערכות בלבד ואינם ייעוץ רפואי.",
+    estimatesDisclaimer: "הערכים הם הערכה בלבד ואינם ייעוץ רפואי.",
   },
   en: {
     appName: "CalorieLens",

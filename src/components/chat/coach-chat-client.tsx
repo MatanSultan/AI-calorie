@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Loader2, Sparkles } from "lucide-react";
@@ -10,7 +10,7 @@ import type { AppLocale, ChatMessage } from "@/lib/types";
 const prompts = {
   he: [
     "כמה קלוריות אכלתי היום?",
-    "מה כדאי לאכול בערב עד 450 קלוריות?",
+    "תן לי רעיון לארוחת ערב עד 450 קלוריות",
     "תוסיף גם את השתייה להערכה שלי",
     "נראה לי שאכלתי מעט חלבון. מה מומלץ?",
   ],
@@ -108,7 +108,7 @@ export function CoachChatClient({ locale }: Props) {
           {messages.length === 0 ? (
             <p className="text-sm text-slate-700 dark:text-slate-300">
               {locale === "he"
-                ? "התחילו שיחה קצרה. למשל: כמה קלוריות אכלתי היום?"
+                ? "התחילו עם שאלה קצרה. למשל: כמה קלוריות אכלתי היום?"
                 : "Start with a quick question, for example: how many calories did I eat today?"}
             </p>
           ) : (

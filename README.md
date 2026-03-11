@@ -59,6 +59,7 @@ src/
 supabase/
   migrations/
     001_init.sql
+    002_repair_meal_schema_and_policies.sql
 ```
 
 ## Setup
@@ -77,7 +78,9 @@ cp .env.example .env.local
 
 3. Configure Supabase SQL schema:
 - Open Supabase SQL editor
-- Run the migration in `supabase/migrations/001_init.sql`
+- Run the migrations in order:
+  - `supabase/migrations/001_init.sql`
+  - `supabase/migrations/002_repair_meal_schema_and_policies.sql`
 
 4. Run app locally:
 
@@ -93,6 +96,7 @@ npm run dev
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 4. Run migration SQL (`001_init.sql`) to create tables, triggers, RLS, and storage policies.
+5. Run `002_repair_meal_schema_and_policies.sql` if your project was created earlier or meal save/upload was failing.
 5. Ensure storage bucket `meal-images` exists (migration creates it if missing).
 
 ## Where to Put Groq API Key
@@ -126,6 +130,7 @@ No UI code changes are needed because routes consume the provider interface, not
 
 - AI calls run server-side only (`/api/ai/*`).
 - Service role key is never exposed to client.
+- `NEXT_PUBLIC_APP_URL` is optional. Server actions now derive the current origin automatically, but setting it is still useful for some auth/email callback setups.
 - `SUPABASE_SERVICE_ROLE_KEY` is optional but recommended for robust server-side image uploads.
 - Uploads are validated for MIME and size with zod.
 - Meal data is tied to authenticated user IDs.

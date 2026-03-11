@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Camera, ChartColumn, MessageSquare, Sparkles, WandSparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -103,7 +103,7 @@ export default async function HomePage() {
             <CardTitle>{rtl ? "איך משתמשים בקלות?" : "How it works"}</CardTitle>
             <CardDescription className="mt-1">
               {rtl
-                ? "תהליך קצר וברור - גם בלי ידע קודם."
+                ? "תהליך קצר וברור, גם בלי ידע קודם."
                 : "A short and clear flow, even for first-time users."}
             </CardDescription>
             <ol className="mt-4 space-y-2 text-sm">
@@ -151,7 +151,7 @@ export default async function HomePage() {
           </CardTitle>
           <CardDescription className="mt-1 text-slate-200">
             {rtl
-              ? "מצב ניסיון חינם מאפשר ניתוח תמונה וצ׳אט AI ללא שמירת נתונים."
+              ? "מצב ניסיון חינם מאפשר ניתוח תמונה וצ'אט AI ללא שמירת נתונים."
               : "Free trial mode lets you analyze meals and chat with AI without saving data."}
           </CardDescription>
           <div className="mt-4">

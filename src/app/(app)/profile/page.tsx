@@ -1,9 +1,10 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { getLocale } from "@/lib/i18n/get-locale";
 
 async function updateProfile(formData: FormData) {
   "use server";
@@ -42,6 +43,8 @@ async function updateProfile(formData: FormData) {
 }
 
 export default async function ProfilePage() {
+  const locale = await getLocale();
+  const isHebrew = locale === "he";
   const supabase = await createClient();
   const {
     data: { user },
@@ -52,7 +55,7 @@ export default async function ProfilePage() {
   const [{ data: profile }, { data: goals }, { data: analytics }] = await Promise.all([
     supabase.from("profiles").select("full_name,preferred_language").eq("id", user.id).maybeSingle(),
     supabase.from("user_goals").select("daily_calorie_target,weight_goal_kg").eq("user_id", user.id).maybeSingle(),
-    supabase.from("meal_entries").select("total_confirmed_calories,total_estimated_calories").eq("user_id", user.id),
+    supabase.from("meal_entries").select("total_confirmed_calories,total_estimated_calories").eq("user_id", user.id).eq("status", "confirmed"),
   ]);
 
   const totalMeals = analytics?.length ?? 0;
@@ -63,19 +66,19 @@ export default async function ProfilePage() {
   return (
     <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
       <Card>
-        <CardTitle>פרופיל והעדפות</CardTitle>
+        <CardTitle>{isHebrew ? "פרופיל והעדפות" : "Profile and preferences"}</CardTitle>
         <CardDescription className="mt-1">
-          עדכון שפה, יעדים אישיים והעדפות מעקב.
+          {isHebrew ? "עדכון שפה, יעדים אישיים והעדפות מעקב." : "Update your language, goals, and tracking preferences."}
         </CardDescription>
 
         <form action={updateProfile} className="mt-5 space-y-3">
           <div>
-            <label className="mb-1.5 block text-sm font-semibold text-slate-800 dark:text-slate-100">שם מלא</label>
+            <label className="mb-1.5 block text-sm font-semibold text-slate-800 dark:text-slate-100">{isHebrew ? "שם מלא" : "Full name"}</label>
             <Input value={profile?.full_name ?? ""} readOnly />
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-semibold text-slate-800 dark:text-slate-100">שפה מועדפת</label>
+            <label className="mb-1.5 block text-sm font-semibold text-slate-800 dark:text-slate-100">{isHebrew ? "שפה מועדפת" : "Preferred language"}</label>
             <select
               name="preferredLanguage"
               defaultValue={profile?.preferred_language ?? "he"}
@@ -87,32 +90,32 @@ export default async function ProfilePage() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-semibold text-slate-800 dark:text-slate-100">יעד קלוריות יומי</label>
+            <label className="mb-1.5 block text-sm font-semibold text-slate-800 dark:text-slate-100">{isHebrew ? "יעד קלוריות יומי" : "Daily calorie goal"}</label>
             <Input name="dailyCalorieTarget" type="number" defaultValue={goals?.daily_calorie_target ?? ""} />
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-semibold text-slate-800 dark:text-slate-100">יעד משקל (ק&quot;ג)</label>
+            <label className="mb-1.5 block text-sm font-semibold text-slate-800 dark:text-slate-100">{isHebrew ? "יעד משקל (ק\"ג)" : "Weight goal (kg)"}</label>
             <Input name="weightGoalKg" type="number" step="0.1" defaultValue={goals?.weight_goal_kg ?? ""} />
           </div>
 
-          <Button>שמירת שינויים</Button>
+          <Button>{isHebrew ? "שמירת שינויים" : "Save changes"}</Button>
         </form>
       </Card>
 
       <Card>
-        <CardTitle>תמונת מצב</CardTitle>
+        <CardTitle>{isHebrew ? "תמונת מצב" : "Snapshot"}</CardTitle>
         <div className="mt-4 space-y-3 text-sm">
           <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-700">
-            <p className="text-slate-700 dark:text-slate-300">סה&quot;כ ארוחות מתועדות</p>
+            <p className="text-slate-700 dark:text-slate-300">{isHebrew ? "סך ארוחות מתועדות" : "Logged meals"}</p>
             <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{totalMeals}</p>
           </div>
           <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-700">
-            <p className="text-slate-700 dark:text-slate-300">ממוצע קלוריות לארוחה</p>
+            <p className="text-slate-700 dark:text-slate-300">{isHebrew ? "ממוצע קלוריות לארוחה" : "Average calories per meal"}</p>
             <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{avgCalories} kcal</p>
           </div>
           <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-700">
-            <p className="text-slate-700 dark:text-slate-300">עקביות תיעוד</p>
+            <p className="text-slate-700 dark:text-slate-300">{isHebrew ? "עקביות תיעוד" : "Logging consistency"}</p>
             <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{consistency}%</p>
           </div>
         </div>
