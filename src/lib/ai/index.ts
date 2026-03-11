@@ -1,7 +1,7 @@
 import { GroqAIProvider } from "@/lib/ai/providers/groq";
 import { OpenAIProvider } from "@/lib/ai/providers/openai";
 import { CompositeAIProvider } from "@/lib/ai/providers/composite";
-import { LocalVisionAIProvider } from "@/lib/ai/providers/local-vision";
+import { MockAIProvider } from "@/lib/ai/providers/mock";
 import type { AIProvider } from "@/lib/ai/types";
 
 export function getAIProvider(): AIProvider {
@@ -40,7 +40,9 @@ export function getAIProvider(): AIProvider {
     addOpenAI();
   }
 
-  providers.push(new LocalVisionAIProvider());
+  if (providers.length === 0) {
+    return new MockAIProvider();
+  }
 
   return providers.length === 1 ? providers[0] : new CompositeAIProvider(providers);
 }

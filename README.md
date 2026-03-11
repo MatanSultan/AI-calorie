@@ -16,7 +16,7 @@ Core capabilities:
 - Tailwind CSS
 - Reusable shadcn-style component primitives
 - Supabase (Auth, Postgres, Storage)
-- AI provider abstraction (`Groq` / `OpenAI` with local vision fallback)
+- AI provider abstraction (`Groq` / `OpenAI`)
 - Zod validation and defensive server-side parsing
 
 ## Project Structure
@@ -111,16 +111,17 @@ Optional model overrides:
 
 ```env
 GROQ_TEXT_MODEL=llama-3.3-70b-versatile
-GROQ_VISION_MODEL=llama-3.2-11b-vision-preview
+GROQ_VISION_MODEL=meta-llama/llama-4-scout-17b-16e-instruct
 ```
 
-If Groq/OpenAI vision is unavailable, the app automatically falls back to a local vision model for image-first food analysis.
+If no external AI provider key is configured, the app falls back to the lightweight mock provider so the UI can still be exercised without bundling local inference runtimes.
 
 ## How to Swap Groq Provider Later
 
 Provider entrypoint is `src/lib/ai/index.ts`.
 
-- `getAIProvider()` currently returns `GroqAIProvider` when `GROQ_API_KEY` exists, otherwise `MockAIProvider`.
+- `getAIProvider()` prefers the provider selected by `AI_PROVIDER`, then falls back between `GroqAIProvider` and `OpenAIProvider` based on which API keys are available.
+- If no external API key is configured, it returns `MockAIProvider`.
 - Add a new provider class under `src/lib/ai/providers/` that implements `AIProvider` from `src/lib/ai/types.ts`.
 - Update `getAIProvider()` selection logic by env flag (for example: `AI_PROVIDER=openai`).
 

@@ -9,7 +9,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@huggingface/transformers": "^3.8.1",
     "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.99.0",
     "class-variance-authority": "^0.7.1",
