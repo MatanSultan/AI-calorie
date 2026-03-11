@@ -1,0 +1,59 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { signInAction } from "@/app/(auth)/actions";
+import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/layout/logo";
+import { createClient } from "@/lib/supabase/server";
+
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; checkEmail?: string; next?: string }>;
+}) {
+  const params = await searchParams;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) redirect("/dashboard");
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,#d8fce9_0%,#f4f6fb_45%,#eef2ff_100%)] p-4 dark:bg-[radial-gradient(circle_at_top,#042318_0%,#020617_55%,#030712_100%)]">
+      <Card className="w-full max-w-md p-6">
+        <Logo compact />
+        <CardTitle className="mt-4 text-2xl">ברוכים הבאים בחזרה</CardTitle>
+        <CardDescription className="mt-1">
+          התחברו כדי להמשיך לתיעוד הארוחות והמעקב היומי שלכם.
+        </CardDescription>
+
+        {params.checkEmail ? (
+          <p className="mt-4 rounded-xl bg-emerald-100 px-3 py-2 text-sm text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100">
+            החשבון נוצר בהצלחה. אם הפעלת אימות במייל, נא לאשר את ההרשמה ואז להתחבר.
+          </p>
+        ) : null}
+        {params.error ? (
+          <p className="mt-4 rounded-xl bg-rose-100 px-3 py-2 text-sm text-rose-900 dark:bg-rose-900/40 dark:text-rose-100">
+            {params.error}
+          </p>
+        ) : null}
+
+        <form action={signInAction} className="mt-6 space-y-3">
+          <input type="hidden" name="next" value={params.next ?? "/dashboard"} />
+          <Input name="email" type="email" required placeholder="אימייל" />
+          <Input name="password" type="password" required placeholder="סיסמה" />
+          <Button className="w-full">התחברות</Button>
+        </form>
+
+        <p className="mt-4 text-center text-sm text-slate-700 dark:text-slate-300">
+          עדיין אין לכם חשבון?{" "}
+          <Link className="font-semibold text-emerald-700 underline-offset-4 hover:underline dark:text-emerald-300" href="/sign-up">
+            להרשמה
+          </Link>
+        </p>
+      </Card>
+    </main>
+  );
+}

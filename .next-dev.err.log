@@ -1,0 +1,64 @@
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\user\package-lock.json as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * C:\Users\user\Desktop\CalorieLens\package-lock.json
+
+ ⚠ Port 3000 is in use by an unknown process, using available port 3002 instead.
+[ai/analyze:e90c6d0d] failed Error: מודל הוויז'ן לא זמין כרגע.
+    at GroqAIProvider.analyzeMeal (src\lib\ai\providers\groq.ts:319:13)
+    at async POST (src\app\api\ai\analyze\route.ts:33:20)
+  317 |
+  318 |     if (lastError) {
+> 319 |       throw new Error(lastError.message);
+      |             ^
+  320 |     }
+  321 |
+  322 |     throw new Error(input.locale === "he" ? "לא התקבלה תשובת ניתוח תקינה." : "No valid analysis response was returned.");
+[ai/analyze:371fe025] failed Error: מודל הוויז'ן של Groq אינו זמין כרגע בפרויקט.
+    at GroqAIProvider.analyzeMeal (src\lib\ai\providers\groq.ts:332:13)
+    at async POST (src\app\api\ai\analyze\route.ts:34:20)
+  330 |
+  331 |     if (lastError) {
+> 332 |       throw new Error(lastError.message);
+      |             ^
+  333 |     }
+  334 |
+  335 |     throw new Error(input.locale === "he" ? "לא התקבלה תשובת ניתוח תקינה." : "No valid analysis response was returned.");
+[ai/analyze:be4b580d] failed Error: מודל הוויז'ן של Groq אינו זמין כרגע בפרויקט.
+    at GroqAIProvider.analyzeMeal (src\lib\ai\providers\groq.ts:332:13)
+    at async POST (src\app\api\ai\analyze\route.ts:34:20)
+  330 |
+  331 |     if (lastError) {
+> 332 |       throw new Error(lastError.message);
+      |             ^
+  333 |     }
+  334 |
+  335 |     throw new Error(input.locale === "he" ? "לא התקבלה תשובת ניתוח תקינה." : "No valid analysis response was returned.");
+[ai/analyze:dba4ef88] failed Error [AIConfigurationError]: מודל הוויז'ן של Groq אינו זמין כרגע בפרויקט.
+    at mapGroqErrorMessage (src\lib\ai\providers\groq.ts:158:11)
+    at GroqAIProvider.requestCompletion (src\lib\ai\providers\groq.ts:200:23)
+    at async GroqAIProvider.analyzeMeal (src\lib\ai\providers\groq.ts:316:23)
+    at async POST (src\app\api\ai\analyze\route.ts:34:20)
+  156 |
+  157 |   if (normalized.includes("model") && (normalized.includes("not found") || normalized.includes("does not exist") || normalized.includes("unsupported"))) {
+> 158 |     throw new AIConfigurationError(
+      |           ^
+  159 |       locale === "he"
+  160 |         ? "מודל הוויז'ן של Groq אינו זמין כרגע בפרויקט."
+  161 |         : "The Groq vision model is not available for this project.",
+[ai/analyze:8a7e3066] failed Error [AIConfigurationError]: מודל הוויז'ן של Groq חסום בפרויקט. הפעילו מודל ויז'ן ב-Groq או הוסיפו OPENAI_API_KEY.
+    at mapGroqErrorMessage (src\lib\ai\providers\groq.ts:142:11)
+    at GroqAIProvider.requestCompletion (src\lib\ai\providers\groq.ts:198:23)
+    at async GroqAIProvider.analyzeMeal (src\lib\ai\providers\groq.ts:314:23)
+    at async POST (src\app\api\ai\analyze\route.ts:34:20)
+  140 |
+  141 |   if (normalized.includes("blocked at the project level") || normalized.includes("model_permission_blocked_project")) {
+> 142 |     throw new AIConfigurationError(
+      |           ^
+  143 |       locale === "he"
+  144 |         ? "מודל הוויז'ן של Groq חסום בפרויקט. הפעילו מודל ויז'ן ב-Groq או הוסיפו OPENAI_API_KEY."
+  145 |         : "The Groq vision model is blocked for this project. Enable a Groq vision model or add OPENAI_API_KEY.",
+ ⚠ Found a change in next.config.ts. Restarting the server to apply the changes...
+ ⚠ Found a change in next.config.ts. Restarting the server to apply the changes...

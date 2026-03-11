@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f6faf9;
+  --foreground: #0f172a;
+  --muted-foreground: #334155;
+}
+
+.dark {
+  --background: #020617;
+  --foreground: #e2e8f0;
+  --muted-foreground: #cbd5e1;
+}
+
+* {
+  border-color: rgb(226 232 240 / 0.7);
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  line-height: 1.5;
+  text-rendering: optimizeLegibility;
+}
+
+.rtl-grid {
+  direction: rtl;
+}
+
+.ltr-grid {
+  direction: ltr;
+}
+
+p,
+label,
+li,
+small {
+  color: var(--muted-foreground);
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-up {
+  animation: fade-up 260ms ease-out;
+}
+

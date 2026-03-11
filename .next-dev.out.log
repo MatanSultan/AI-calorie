@@ -1,0 +1,74 @@
+
+> calorielens-app@0.1.0 dev
+> next dev
+
+   ▲ Next.js 15.5.12
+   - Local:        http://localhost:3002
+   - Network:      http://10.100.102.5:3002
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 20s
+ ○ Compiling /api/ai/analyze ...
+ ✓ Compiled /api/ai/analyze in 8.4s (439 modules)
+[ai/analyze:e90c6d0d] request {
+  hasImageBase64: false,
+  hasImageUrl: true,
+  hasDescription: false,
+  demoMode: true,
+  locale: 'he'
+}
+ POST /api/ai/analyze 400 in 13859ms
+ ✓ Compiled in 343ms
+ ○ Compiling /api/ai/analyze ...
+ ✓ Compiled /api/ai/analyze in 1446ms (247 modules)
+[ai/analyze:371fe025] request {
+  hasImageBase64: false,
+  hasImageUrl: true,
+  hasDescription: false,
+  demoMode: true,
+  locale: 'he'
+}
+ POST /api/ai/analyze 400 in 3172ms
+ ✓ Compiled in 433ms (247 modules)
+[ai/analyze:be4b580d] request {
+  hasImageBase64: false,
+  hasImageUrl: true,
+  hasDescription: false,
+  demoMode: true,
+  locale: 'he'
+}
+ POST /api/ai/analyze 400 in 1087ms
+ ✓ Compiled in 1279ms (247 modules)
+[ai/analyze:dba4ef88] request {
+  hasImageBase64: false,
+  hasImageUrl: true,
+  hasDescription: false,
+  demoMode: true,
+  locale: 'he'
+}
+ POST /api/ai/analyze 503 in 1004ms
+ ✓ Compiled in 448ms (247 modules)
+[ai/analyze:8a7e3066] request {
+  hasImageBase64: false,
+  hasImageUrl: true,
+  hasDescription: false,
+  demoMode: true,
+  locale: 'he'
+}
+ POST /api/ai/analyze 503 in 852ms
+ ✓ Compiled in 3.4s (195 modules)
+   ▲ Next.js 15.5.12
+   - Local:        http://localhost:3002
+   - Network:      http://10.100.102.5:3002
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 16.4s
+   ▲ Next.js 15.5.12
+   - Local:        http://localhost:3002
+   - Network:      http://10.100.102.5:3002
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 19.4s
