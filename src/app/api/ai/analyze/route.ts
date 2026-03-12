@@ -12,6 +12,7 @@ export async function POST(request: Request) {
   const requestId = randomUUID().slice(0, 8);
   try {
     const payload = analyzeMealRequestSchema.parse(await request.json());
+    const requiresVision = Boolean(payload.imageBase64 || payload.imageUrl);
     if (process.env.NODE_ENV !== "production") {
       console.info(`[ai/analyze:${requestId}] request`, {
         hasImageBase64: Boolean(payload.imageBase64),
@@ -19,6 +20,7 @@ export async function POST(request: Request) {
         hasDescription: Boolean(payload.mealDescription?.trim()),
         demoMode: payload.demoMode,
         locale: payload.locale,
+        requiresVision,
       });
     }
 
@@ -32,7 +34,10 @@ export async function POST(request: Request) {
       }
     }
 
-    const provider = getAIProvider();
+    const provider = getAIProvider({
+      allowMockFallback: payload.demoMode,
+      mode: requiresVision ? "vision" : "chat",
+    });
     const result = await provider.analyzeMeal(payload);
     const normalized = {
       ...result,
@@ -59,14 +64,22 @@ export async function POST(request: Request) {
 
     if (error instanceof AIConfigurationError) {
       return NextResponse.json(
-        { error: error.message },
+        {
+          error: error.message,
+          code: "AI_VISION_PROVIDER_MISCONFIGURED",
+          requestId,
+        },
         { status: 503 },
       );
     }
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Analysis failed" },
-      { status: 400 },
+      {
+        error: error instanceof Error ? error.message : "Analysis failed",
+        code: "AI_ANALYSIS_FAILED",
+        requestId,
+      },
+      { status: 502 },
     );
   }
 }

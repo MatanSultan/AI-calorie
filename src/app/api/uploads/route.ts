@@ -6,6 +6,10 @@ import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
+function isDevelopment() {
+  return process.env.NODE_ENV !== "production";
+}
+
 function getUploadStatus(error: unknown) {
   const message = error instanceof Error ? error.message.toLowerCase() : "";
 
@@ -25,6 +29,17 @@ function getUploadStatus(error: unknown) {
   return 500;
 }
 
+function getUploadCode(error: unknown) {
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+
+  if (message.includes("bucket")) return "SUPABASE_STORAGE_BUCKET_MISSING";
+  if (message.includes("row-level security") || message.includes("permission")) return "SUPABASE_STORAGE_RLS_DENIED";
+  if (message.includes("unauthorized")) return "AUTH_REQUIRED";
+  if (message.includes("too large") || message.includes("size")) return "IMAGE_TOO_LARGE";
+  if (message.includes("unsupported")) return "IMAGE_UNSUPPORTED";
+  return "UPLOAD_FAILED";
+}
+
 export async function POST(request: Request) {
   const requestId = randomUUID().slice(0, 8);
 
@@ -35,7 +50,7 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized", code: "AUTH_REQUIRED" }, { status: 401 });
     }
 
     const formData = await request.formData();
@@ -44,7 +59,10 @@ export async function POST(request: Request) {
 
     if (!file) {
       return NextResponse.json(
-        { error: "No image file was provided. Attach the file using the `file` field." },
+        {
+          error: "No image file was provided. Attach the file using the `file` field.",
+          code: "FILE_MISSING",
+        },
         { status: 400 },
       );
     }
@@ -57,7 +75,7 @@ export async function POST(request: Request) {
       buffer: Buffer.from(await file.arrayBuffer()),
     });
 
-    if (process.env.NODE_ENV !== "production") {
+    if (isDevelopment()) {
       console.info(`[uploads:${requestId}] uploaded`, {
         userId: user.id,
         path: storedImage.path,
@@ -77,25 +95,43 @@ export async function POST(request: Request) {
       },
     );
   } catch (error) {
-    if (process.env.NODE_ENV !== "production") {
+    if (isDevelopment()) {
       console.error(`[uploads:${requestId}] failed`, error);
     }
 
     if (error instanceof ZodError) {
       const message = error.issues[0]?.message ?? "Invalid image upload.";
       const status = message.toLowerCase().includes("unsupported") ? 415 : 413;
-      return NextResponse.json({ error: message }, { status });
+      return NextResponse.json(
+        {
+          error: message,
+          code: status === 415 ? "IMAGE_UNSUPPORTED" : "IMAGE_TOO_LARGE",
+          requestId,
+        },
+        { status },
+      );
     }
 
     const status = getUploadStatus(error);
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Image upload failed. You can still save the meal without attaching the image.",
-      },
-      { status },
-    );
+    const payload: Record<string, unknown> = {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Image upload failed. You can still save the meal without attaching the image.",
+      code: getUploadCode(error),
+      requestId,
+    };
+
+    if (isDevelopment() && error && typeof error === "object") {
+      const maybeError = error as { message?: string; name?: string; stack?: string; code?: string; details?: string; hint?: string };
+      payload.debug = {
+        name: maybeError.name ?? null,
+        code: maybeError.code ?? null,
+        details: maybeError.details ?? null,
+        hint: maybeError.hint ?? null,
+      };
+    }
+
+    return NextResponse.json(payload, { status });
   }
 }

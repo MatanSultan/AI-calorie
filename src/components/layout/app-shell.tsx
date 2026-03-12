@@ -7,6 +7,7 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { dictionary } from "@/lib/i18n/dictionary";
 import type { AppLocale } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
+import { cn } from "@/lib/utils";
 
 async function signOut() {
   "use server";
@@ -23,9 +24,13 @@ const nav = [
 
 export async function AppShell({ locale, children }: { locale: AppLocale; children: React.ReactNode }) {
   const copy = dictionary[locale];
+  const isHebrew = locale === "he";
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#dff8ef_0%,#f8fbff_44%,#eef4ff_100%)] text-slate-900 dark:bg-[radial-gradient(circle_at_top,#05261d_0%,#020617_58%,#02030a_100%)] dark:text-slate-100">
+    <div
+      dir={isHebrew ? "rtl" : "ltr"}
+      className="min-h-screen bg-[radial-gradient(circle_at_top,#dff8ef_0%,#f8fbff_44%,#eef4ff_100%)] text-slate-900 dark:bg-[radial-gradient(circle_at_top,#05261d_0%,#020617_58%,#02030a_100%)] dark:text-slate-100"
+    >
       <header className="sticky top-0 z-30 border-b border-white/70 bg-white/80 backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/70">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <Logo />
@@ -42,8 +47,18 @@ export async function AppShell({ locale, children }: { locale: AppLocale; childr
         </div>
       </header>
 
-      <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 px-4 py-6 pb-24 sm:px-6 md:grid-cols-[220px_minmax(0,1fr)] md:pb-8">
-        <aside className="hidden rounded-[30px] border border-white/70 bg-white/84 p-3 shadow-[0_24px_70px_-40px_rgba(15,23,42,0.35)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/74 md:block">
+      <div
+        className={cn(
+          "mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 px-4 py-6 pb-24 sm:px-6 md:pb-8",
+          isHebrew ? "md:grid-cols-[minmax(0,1fr)_220px]" : "md:grid-cols-[220px_minmax(0,1fr)]",
+        )}
+      >
+        <aside
+          className={cn(
+            "hidden rounded-[30px] border border-white/70 bg-white/84 p-3 shadow-[0_24px_70px_-40px_rgba(15,23,42,0.35)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/74 md:block",
+            isHebrew ? "md:order-2" : "md:order-1",
+          )}
+        >
           <nav className="space-y-1">
             {nav.map((item) => {
               const Icon = item.icon;
@@ -60,7 +75,7 @@ export async function AppShell({ locale, children }: { locale: AppLocale; childr
             })}
           </nav>
         </aside>
-        <main>{children}</main>
+        <main className={isHebrew ? "md:order-1" : "md:order-2"}>{children}</main>
       </div>
       <MobileBottomNav locale={locale} />
     </div>

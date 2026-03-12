@@ -8,10 +8,10 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-[linear-gradient(135deg,#10b981_0%,#06b6d4_100%)] text-white shadow-[0_18px_38px_-18px_rgba(6,182,212,0.8)] hover:brightness-[1.03]",
-        secondary: "bg-slate-200/90 text-slate-950 shadow-sm hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700",
-        ghost: "text-slate-800 hover:bg-slate-100/90 dark:text-slate-100 dark:hover:bg-slate-800/90",
+        secondary: "bg-slate-200 text-slate-950 shadow-sm hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-50 dark:hover:bg-slate-700",
+        ghost: "text-slate-900 hover:bg-slate-100/90 dark:text-slate-50 dark:hover:bg-slate-800/90",
         destructive: "bg-[linear-gradient(135deg,#f43f5e_0%,#ef4444_100%)] text-white shadow-[0_18px_38px_-18px_rgba(244,63,94,0.75)] hover:brightness-[1.03]",
-        outline: "border border-slate-300/80 bg-white/80 text-slate-800 shadow-sm hover:bg-white dark:border-slate-700 dark:bg-slate-950/65 dark:text-slate-100 dark:hover:bg-slate-900",
+        outline: "border border-slate-300/90 bg-white text-slate-900 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950/85 dark:text-slate-50 dark:hover:bg-slate-900",
       },
       size: {
         default: "h-11 px-4 py-2",

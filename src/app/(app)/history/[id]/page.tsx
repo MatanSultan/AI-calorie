@@ -1,5 +1,5 @@
 ﻿import Link from "next/link";
-import { ArrowRight, Camera, MessageSquareText, UtensilsCrossed } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, MessageSquareText, UtensilsCrossed } from "lucide-react";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,7 @@ export default async function MealDetailPage({ params }: { params: Promise<{ id:
   const isHebrew = locale === "he";
   const detail = await getMealDetail(id);
   if (!detail) return notFound();
+  const BackIcon = isHebrew ? ArrowRight : ArrowLeft;
 
   const totalCalories = detail.meal.total_confirmed_calories ?? detail.meal.total_estimated_calories ?? 0;
 
@@ -21,7 +22,7 @@ export default async function MealDetailPage({ params }: { params: Promise<{ id:
         href="/history"
         className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/70 dark:text-slate-100"
       >
-        <ArrowRight className="h-4 w-4" />
+        <BackIcon className="h-4 w-4" />
         {isHebrew ? "חזרה להיסטוריה" : "Back to history"}
       </Link>
 
@@ -107,7 +108,7 @@ export default async function MealDetailPage({ params }: { params: Promise<{ id:
               </div>
             </div>
 
-            <div className="rounded-[24px] bg-slate-50 p-4 text-sm leading-6 text-slate-700 dark:bg-slate-900 dark:text-slate-200">
+            <div className="rounded-[24px] bg-slate-50 p-4 text-sm leading-6 text-slate-700 dark:bg-slate-900 dark:text-slate-200" dir="auto">
               {detail.conversation?.summary ?? (isHebrew ? "לא נשמר סיכום חידוד לארוחה הזאת." : "No refinement summary was stored for this meal.")}
             </div>
 
@@ -121,6 +122,7 @@ export default async function MealDetailPage({ params }: { params: Promise<{ id:
                         ? "rounded-[22px] bg-emerald-100 px-4 py-3 text-sm text-emerald-950 dark:bg-emerald-900/30 dark:text-emerald-100"
                         : "rounded-[22px] bg-slate-100 px-4 py-3 text-sm text-slate-900 dark:bg-slate-900 dark:text-slate-100"
                     }
+                    dir="auto"
                   >
                     <strong className="me-1">{message.role === "assistant" ? "AI:" : isHebrew ? "אתם:" : "You:"}</strong>
                     {message.content}

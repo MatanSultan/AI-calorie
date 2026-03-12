@@ -39,6 +39,21 @@ function getFileExtension(fileName: string | undefined, mimeType: string) {
   return MIME_EXTENSION_MAP[mimeType.toLowerCase()] ?? "jpg";
 }
 
+function isStorageErrorWithMessage(error: unknown): error is { message: string } {
+  return Boolean(error && typeof error === "object" && "message" in error);
+}
+
+function normalizeBucketError(error: unknown) {
+  const message = isStorageErrorWithMessage(error) ? error.message.toLowerCase() : "";
+  if (message.includes("bucket not found") || message.includes("bucket")) {
+    throw new Error(
+      hasSupabaseServiceRole()
+        ? `Supabase storage bucket '${BUCKET_NAME}' is missing or unavailable. Check storage policies and bucket configuration.`
+        : `Supabase storage bucket '${BUCKET_NAME}' is missing. Apply the storage migration or set SUPABASE_SERVICE_ROLE_KEY so the server can create it.`,
+    );
+  }
+}
+
 async function ensureMealImagesBucket(adminClient: SupabaseClient) {
   const { data: bucket, error: getBucketError } = await adminClient.storage.getBucket(BUCKET_NAME);
   if (bucket && !getBucketError) return;
@@ -79,13 +94,7 @@ export async function storeMealImage(
   });
 
   if (uploadError) {
-    const message = uploadError.message.toLowerCase();
-    if (message.includes("bucket")) {
-      throw new Error(
-        `Supabase storage bucket '${BUCKET_NAME}' is missing or unavailable. Run the storage migration or add SUPABASE_SERVICE_ROLE_KEY so the server can provision it.`,
-      );
-    }
-
+    normalizeBucketError(uploadError);
     throw uploadError;
   }
 

@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6faf9;
+  --background: #f4f8fb;
   --foreground: #0f172a;
   --muted-foreground: #334155;
 }
 
 .dark {
   --background: #020617;
-  --foreground: #e2e8f0;
+  --foreground: #f8fafc;
   --muted-foreground: #cbd5e1;
 }
 
@@ -26,6 +26,7 @@ body {
   color: var(--foreground);
   line-height: 1.5;
   text-rendering: optimizeLegibility;
+  text-align: start;
 }
 
 .rtl-grid {
@@ -40,7 +41,14 @@ p,
 label,
 li,
 small {
-  color: var(--muted-foreground);
+  color: inherit;
+}
+
+input,
+textarea,
+select {
+  direction: inherit;
+  text-align: start;
 }
 
 button,

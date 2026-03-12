@@ -1,49 +1,39 @@
 import type { AppLocale, MealAnalysis } from "@/lib/types";
 
-export function mealAnalysisSystemPrompt(locale: AppLocale) {
-  if (locale === "he") {
-    return `אתה מנתח תמונות ארוחות עבור CalorieLens. החזר JSON תקין בלבד, ללא טקסט נוסף.
-התמונה היא המקור הראשי לניתוח. תיאור המשתמש הוא רק השלמה.
-אם אין מזון בתמונה: החזר contains_food=false, is_food=false, items=[], total_estimated_calories=0 ונימוק ידידותי.
-אם יש מזון: פרק לפריטים נפרדים עם portion וקלוריות לכל פריט.
-הערך total_estimated_calories חייב להיות מספר.
-החזר confidence כללי (low|medium|high) ו-visual_confidence לכל פריט.
-אם יש אי ודאות, הוסף 1-3 follow_up_questions קצרות.
-תמיד הדגש שהערכים הם הערכה בלבד וללא ייעוץ רפואי.
-מבנה נדרש:
-{
-  "contains_food": boolean,
-  "is_food": boolean,
-  "confidence": "low" | "medium" | "high",
-  "items": [
-    {
-      "name": string,
-      "estimated_quantity": string,
-      "estimated_portion": string,
-      "estimated_calories": number,
-      "protein_g": number?,
-      "carbs_g": number?,
-      "fat_g": number?,
-      "confidence": "low" | "medium" | "high",
-      "visual_confidence": "low" | "medium" | "high"
-    }
-  ],
-  "total_estimated_calories": number,
-  "notes": string[],
-  "follow_up_questions": string[],
-  "non_food_reason": string?
-}`;
-  }
+function languageName(locale: AppLocale) {
+  return locale === "he" ? "Hebrew" : "English";
+}
 
-  return `You analyze meal images for CalorieLens. Return valid JSON only with no extra text.
-The image is the primary source. User text is only refinement context.
-If there is no food in image: return contains_food=false, is_food=false, items=[], total_estimated_calories=0, and a friendly non_food_reason.
-If food is present: break into separate food items with portions and calories.
-total_estimated_calories must be a number.
-Return overall confidence (low|medium|high) and per-item visual_confidence.
-When uncertain, include 1-3 short follow_up_questions.
-Always state values are estimates and avoid medical advice.
-Required structure:
+export function mealAnalysisSystemPrompt(locale: AppLocale) {
+  return `You analyze meal images for CalorieLens and must return valid JSON only.
+Target language: ${languageName(locale)}.
+Return all natural-language fields in ${languageName(locale)}.
+
+Image analysis rules:
+- Inspect the full image before answering.
+- Identify every major visible food item separately when possible.
+- Include side dishes, sauces, toppings, dips, oils, spreads, cheese, and drinks when visibly present and calorie-relevant.
+- Do not collapse a multi-item plate into one generic item like "mixed meal" if you can identify separate foods.
+- For composite dishes such as burgers, sandwiches, pizza, pasta bowls, rice bowls, or salads, keep the main composed dish as one item only when the components are not visually separable.
+- Ignore tiny garnish unless it meaningfully changes calories.
+- Keep calorie estimates conservative and practical.
+- Prefer 1-8 distinct items.
+
+If there is no food, return:
+- contains_food=false
+- is_food=false
+- items=[]
+- total_estimated_calories=0
+- a friendly non_food_reason
+
+If food is present:
+- return separate items with realistic portion descriptions
+- return total_estimated_calories as a number
+- return overall confidence and item-level confidence
+- add 0-3 short follow_up_questions only when an uncertain detail would materially change calories
+- add short notes stating values are estimates based on image analysis
+
+Required JSON shape:
 {
   "contains_food": boolean,
   "is_food": boolean,
@@ -73,14 +63,16 @@ export function buildAnalysisUserPrompt(
   mealDescription?: string,
   locale: AppLocale = "he",
 ) {
-  const languageLabel = locale === "he" ? "Hebrew" : "English";
-  return `Analyze this meal image first.
-Language: ${languageLabel}
+  return `Analyze this meal image.
+Language: ${languageName(locale)}
 Image provided: ${imageReference ? "yes" : "no"}
-User description (optional refinement only): ${mealDescription ?? "none"}
+Optional user context: ${mealDescription?.trim() || "none"}
+
 Important:
-- Image evidence has higher priority than text.
-- If the image is blurry, give best-effort detection and ask short follow-up questions.
+- The image is the primary evidence.
+- Use the user text only to refine ambiguous details.
+- Scan the whole plate and surrounding area before deciding on items.
+- If multiple foods are visible, list them separately.
 - Return strict JSON only.`;
 }
 
@@ -89,21 +81,13 @@ export function chatSystemPrompt(locale: AppLocale, analysis?: MealAnalysis) {
     ? `Current meal context: ${JSON.stringify(analysis)}`
     : "No meal context yet.";
 
-  if (locale === "he") {
-    return `אתה עוזר קלוריות ותזונה בלבד ב-CalorieLens.
-הנחיות:
-- מותר לענות רק על: אומדן קלוריות, כמויות, רכיבים, תוספות, שתייה, סיכום יומי פשוט, רעיונות ארוחה קלה.
-- אם נשאלים נושאים אחרים, ענה בנימוס שאתה מתמקד רק בקלוריות ומעקב ארוחות.
-- תמיד להזכיר שמדובר בהערכה בלבד.
-- אם חסר מידע, שאל שאלה אחת ממוקדת.
-- לא לתת ייעוץ רפואי.
-${analysisHint}`;
-  }
-
-  return `You are a calorie-tracking assistant for CalorieLens.
-Scope only: calorie estimates, portions, ingredients, drinks/sauces, simple daily summaries, light meal ideas.
-If asked outside scope, say you focus on calorie tracking only.
-Always mention values are estimates and avoid medical advice.
-Ask one focused question when details are missing.
+  return `You are the secondary meal-refinement assistant for CalorieLens.
+Reply in ${languageName(locale)}.
+Scope: refine the current meal only.
+Allowed topics: portions, sauces, toppings, drinks, cooking method, hidden fats, and calorie adjustments.
+Keep replies short and practical.
+If asked outside scope, redirect back to the current meal.
+Always mention that values are estimates only and never medical advice.
+Ask at most one focused follow-up question when missing detail would materially change calories.
 ${analysisHint}`;
 }

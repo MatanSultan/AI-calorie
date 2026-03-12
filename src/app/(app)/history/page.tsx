@@ -1,5 +1,5 @@
 ﻿import Link from "next/link";
-import { CalendarRange, ChevronLeft, Search } from "lucide-react";
+import { CalendarRange, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ export default async function HistoryPage({
   const locale = await getLocale();
   const isHebrew = locale === "he";
   const meals = await getMealHistory(params.q, params.from, params.to);
+  const RowChevron = isHebrew ? ChevronRight : ChevronLeft;
 
   return (
     <div className="space-y-5">
@@ -113,7 +114,7 @@ export default async function HistoryPage({
                         {(meal.total_confirmed_calories ?? meal.total_estimated_calories ?? 0).toFixed(0)} kcal
                       </p>
                     </div>
-                    <ChevronLeft className="h-4 w-4 text-slate-400 transition group-hover:text-slate-700 dark:group-hover:text-slate-200" />
+                    <RowChevron className="h-4 w-4 text-slate-400 transition group-hover:text-slate-700 dark:group-hover:text-slate-200" />
                   </div>
                 </div>
               </Card>

@@ -19,7 +19,10 @@ export async function POST(request: Request) {
       }
     }
 
-    const provider = getAIProvider();
+    const provider = getAIProvider({
+      allowMockFallback: payload.demoMode,
+      mode: "chat",
+    });
     const text = await provider.chat(payload);
 
     const encoder = new TextEncoder();

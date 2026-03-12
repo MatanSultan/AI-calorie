@@ -36,7 +36,10 @@ export function MobileBottomNav({ locale }: { locale: AppLocale }) {
   ];
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/70 bg-white/85 px-3 py-2 backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/88 md:hidden">
+    <nav
+      dir={locale === "he" ? "rtl" : "ltr"}
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-white/70 bg-white/85 px-3 py-2 backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/88 md:hidden"
+    >
       <ul className="grid grid-cols-5 gap-1">
         {items.map((item) => {
           const Icon = item.icon;

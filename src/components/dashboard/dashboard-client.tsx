@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -137,6 +137,8 @@ const copyByLocale = {
     addMealCta: "התחל ארוחה חדשה",
     updatedToday: "עודכן להיום",
     cancel: "ביטול",
+    optionalRefinement: "חידוד אופציונלי",
+    optionalRefinementHint: "הצ'אט הוא שלב משני בלבד. פתחו אותו רק אם צריך לדייק משהו קטן לפני שמירה.",
   },
   en: {
     title: "A simple 3-step calorie flow",
@@ -197,6 +199,8 @@ const copyByLocale = {
     addMealCta: "Start a new meal",
     updatedToday: "Updated today",
     cancel: "Cancel",
+    optionalRefinement: "Optional refinement",
+    optionalRefinementHint: "Chat is a secondary step only. Open it only if you need to refine a small detail before saving.",
   },
 } as const;
 
@@ -436,15 +440,35 @@ export function DashboardClient({ locale, summary, recentMeals }: Props) {
   function updateWeeklyCaloriesAfterSave(totalCalories: number, occurredAtIso: string) {
     const entryDate = new Date(occurredAtIso).toISOString().slice(0, 10);
     setWeeklyCaloriesState((prev) => {
-      if (prev.length === 0) return prev;
       let found = false;
       const next = prev.map((entry) => {
         if (entry.date !== entryDate) return entry;
         found = true;
         return { ...entry, calories: entry.calories + totalCalories };
       });
-      return found ? next : prev;
+      if (found) return next;
+      return [...next, { date: entryDate, calories: totalCalories }]
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .slice(-7);
     });
+  }
+
+  function buildMealTitle() {
+    const trimmedDescription = description.trim();
+    if (trimmedDescription) {
+      return trimmedDescription.slice(0, 80);
+    }
+
+    const names = items
+      .map((item) => item.name.trim())
+      .filter(Boolean)
+      .slice(0, 2);
+
+    if (names.length > 0) {
+      return names.join(" + ").slice(0, 80);
+    }
+
+    return locale === "he" ? "ארוחה חדשה" : "New meal";
   }
 
   async function refineFromConversation(chatMessages: ChatMessage[]) {
@@ -542,7 +566,7 @@ export function DashboardClient({ locale, summary, recentMeals }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           locale,
-          title: description?.slice(0, 80) || (locale === "he" ? "ארוחה חדשה" : "New meal"),
+          title: buildMealTitle(),
           status: "confirmed",
           occurredAt: new Date().toISOString(),
           notes: analysis?.notes.join("\n") || undefined,
@@ -606,7 +630,9 @@ export function DashboardClient({ locale, summary, recentMeals }: Props) {
       setItems([]);
       setMessages([]);
 
-      router.refresh();
+      startTransition(() => {
+        router.refresh();
+      });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : copy.saveError);
     } finally {
@@ -708,6 +734,7 @@ export function DashboardClient({ locale, summary, recentMeals }: Props) {
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
                 placeholder={copy.optionalTextPlaceholder}
+                dir="auto"
               />
             </div>
 
@@ -885,57 +912,66 @@ export function DashboardClient({ locale, summary, recentMeals }: Props) {
             </Button>
 
             {analysis && containsFood ? (
-              <div className="space-y-4 rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/40">
-                <div className="space-y-1">
-                  <p className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
-                    <PencilLine className="h-4 w-4 text-cyan-600" />
-                    {copy.refinementTitle}
-                  </p>
-                  <p className="text-sm text-slate-700 dark:text-slate-300">{copy.refinementDescription}</p>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {copy.chatExamples.map((example) => (
-                    <Button key={example} size="sm" variant="secondary" onClick={() => sendChat(example)} disabled={chatting}>
-                      {example}
-                    </Button>
-                  ))}
-                </div>
-
-                <div className="max-h-60 space-y-2 overflow-y-auto">
-                  {messages.length === 0 ? (
-                    <p className="rounded-2xl bg-white p-3 text-sm text-slate-700 dark:bg-slate-900 dark:text-slate-300">
-                      {locale === "he"
-                        ? "הצ'אט כאן רק אם צריך לדייק משהו קטן לפני שמירה."
-                        : "Chat is only here if you want to refine a small detail before saving."}
+              <details className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/40">
+                <summary className="flex cursor-pointer list-none items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="inline-flex items-center gap-2 text-sm font-semibold text-slate-950 dark:text-slate-50">
+                      <PencilLine className="h-4 w-4 text-cyan-600" />
+                      {copy.optionalRefinement}
                     </p>
-                  ) : (
-                    messages.map((message, index) => (
-                      <div
-                        key={`${message.role}-${index}`}
-                        className={
-                          message.role === "assistant"
-                            ? "rounded-2xl bg-emerald-100 p-3 text-sm text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-100"
-                            : "rounded-2xl bg-white p-3 text-sm text-slate-900 dark:bg-slate-900 dark:text-slate-100"
-                        }
-                      >
-                        {message.content}
-                      </div>
-                    ))
-                  )}
-                </div>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">{copy.optionalRefinementHint}</p>
+                  </div>
+                  <span className="text-xs font-semibold text-cyan-700 dark:text-cyan-300">{copy.refinementTitle}</span>
+                </summary>
 
-                <div className="flex gap-2">
-                  <Input
-                    value={chatInput}
-                    onChange={(event) => setChatInput(event.target.value)}
-                    placeholder={copy.chatPlaceholder}
-                  />
-                  <Button onClick={() => sendChat()} disabled={chatting || !chatInput.trim()}>
-                    {chatting ? <Loader2 className="h-4 w-4 animate-spin" /> : copy.send}
-                  </Button>
+                <div className="mt-4 space-y-4">
+                  <p className="text-sm text-slate-700 dark:text-slate-300">{copy.refinementDescription}</p>
+
+                  <div className="flex flex-wrap gap-2">
+                    {copy.chatExamples.map((example) => (
+                      <Button key={example} size="sm" variant="secondary" onClick={() => sendChat(example)} disabled={chatting}>
+                        {example}
+                      </Button>
+                    ))}
+                  </div>
+
+                  <div className="max-h-60 space-y-2 overflow-y-auto">
+                    {messages.length === 0 ? (
+                      <p className="rounded-2xl bg-white p-3 text-sm text-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                        {locale === "he"
+                          ? "הצ'אט כאן רק אם צריך לדייק משהו קטן לפני שמירה."
+                          : "Chat is only here if you want to refine a small detail before saving."}
+                      </p>
+                    ) : (
+                      messages.map((message, index) => (
+                        <div
+                          key={`${message.role}-${index}`}
+                          className={
+                            message.role === "assistant"
+                              ? "rounded-2xl bg-emerald-100 p-3 text-sm text-emerald-950 dark:bg-emerald-900/30 dark:text-emerald-100"
+                              : "rounded-2xl bg-white p-3 text-sm text-slate-950 dark:bg-slate-900 dark:text-slate-100"
+                          }
+                          dir="auto"
+                        >
+                          {message.content}
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Input
+                      value={chatInput}
+                      onChange={(event) => setChatInput(event.target.value)}
+                      placeholder={copy.chatPlaceholder}
+                      dir="auto"
+                    />
+                    <Button onClick={() => sendChat()} disabled={chatting || !chatInput.trim()}>
+                      {chatting ? <Loader2 className="h-4 w-4 animate-spin" /> : copy.send}
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              </details>
             ) : null}
           </Card>
         </div>
